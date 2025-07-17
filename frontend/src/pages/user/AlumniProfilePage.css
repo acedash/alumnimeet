@@ -1,0 +1,328 @@
+.alumni-profile-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: #000000e6;
+  background-color: #f5f5f5;
+}
+
+/* Profile Header Container */
+.profile-header-container {
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+/* Banner */
+.profile-banner {
+  height: 150px;
+  background: linear-gradient(135deg, #e6f2ff, #cce0ff);
+}
+
+/* Profile Header Layout */
+.profile-header {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  padding: 1.5rem 2rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+/* Avatar */
+.avatar-container {
+  flex-shrink: 0;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Header Info */
+.header-info {
+  flex: 2;
+}
+
+ .profile-header  h1 {
+  font-size: 1.5rem;
+  margin-top: .5rem;
+  color: #111827;
+  font-weight: 600;
+  margin-left: 2rem;
+  text-transform: capitalize;
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
+  flex-wrap: wrap;
+}
+
+.batch-info .icon {
+  font-size: 0.9rem;
+  margin-right: 0.3rem;
+}
+
+.mentor-badge {
+  background: #e3f2fd;
+  color: #006097;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Job and Location */
+.current-job,
+.location {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #4b5563;
+  margin-bottom: 0.3rem;
+}
+
+.current-job .icon,
+.location .icon {
+  margin-right: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;flex-direction: column;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  flex: 1;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background-color 0.2s, color 0.2s;
+  min-width: 120px;
+}
+
+.chat-btn {
+  background: #0a66c2;
+  color: white;
+}
+
+.chat-btn:hover {
+  background: #004182;
+}
+
+.connect-btn {
+  background: white;
+  color: #0a66c2;
+  border: 1px solid #0a66c2;
+}
+
+.connect-btn:hover {
+  background: #ebf3ff;
+}
+
+.btn .icon {
+  margin-right: 0.4rem;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .header-info {
+    text-align: center;
+  }
+
+  .action-buttons {
+    justify-content: center;
+  }
+}
+
+/* Main Content Layout */
+.profile-content {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.main-section {
+  flex: 2;
+  min-width: 0;
+}
+
+.sidebar-section {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* Section Cards */
+.section-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.section-card h2 {
+  font-size: 1.1rem;
+  color: #000000e6;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #eaeaea;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Full Width Feed Container */
+.feed-container {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.feed-section {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.1);
+  padding: 1.25rem;
+}
+
+.feed-card {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.feed-card:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.feed-header h3 {
+  font-size: 1rem;
+  margin: 0;
+  color: #000000e6;
+  font-weight: 600;
+  flex: 1;
+}
+
+.feed-date {
+  font-size: 0.75rem;
+  color: #666;
+  margin-left: 1rem;
+  white-space: nowrap;
+}
+
+.feed-content {
+  line-height: 1.5;
+  color: #000000e6;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  padding-right: 1rem;
+}
+
+.feed-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  background-color: #e6f2ff;
+  color: #0a66c2;
+  font-weight: 500;
+}
+
+.feed-card.job .feed-tag {
+  background-color: #e6f7ee;
+  color: #02804b;
+}
+
+.feed-card.event .feed-tag {
+  background-color: #f0e6ff;
+  color: #5e00a0;
+}
+
+.feed-card.post .feed-tag {
+  background-color: #ffe6e6;
+  color: #c20000;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .profile-content {
+    flex-direction: column;
+  }
+  
+  .profile-banner {
+    height: 120px;
+  }
+  
+  .profile-header {
+    padding: 0 1rem 1rem;
+    margin-top: -50px;
+  }
+  
+  .avatar-row {
+    gap: 1rem;
+  }
+  
+  .profile-avatar {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .header-info h1 {
+    font-size: 1.5rem;
+  }
+  
+  .action-buttons {
+    gap: 0.5rem;
+  }
+  
+  .btn {
+    min-width: 100px;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .section-card {
+    padding: 1rem;
+  }
+  
+  .sidebar-section {
+    min-width: 100%;
+  }
+}
