@@ -36,16 +36,26 @@ export const registerStudent = async (req, res) => {
         });
 
         if (user) {
+            const token = generateToken(user._id);
             res.status(201).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                userType: user.userType,
-                verificationStatus: user.verificationStatus,
-                token: generateToken(user._id)
+                success: true,
+                message: 'Student registration successful. Your account is pending verification.',
+                token: token,
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    userType: user.userType,
+                    verificationStatus: user.verificationStatus,
+                    department: user.department,
+                    currentYear: user.currentYear
+                }
             });
         } else {
-            res.status(400).json({ message: 'Invalid user data' });
+            res.status(400).json({ 
+                success: false,
+                message: 'Invalid user data' 
+            });
         }
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -82,13 +92,21 @@ export const registerAlumni = async (req, res) => {
             verificationStatus: 'pending'
         });
 
+        const token = generateToken(user._id);
         res.status(201).json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            userType: user.userType,
-            verificationStatus: user.verificationStatus,
-            token: generateToken(user._id)
+            success: true,
+            message: 'Alumni registration successful. Your account is pending verification.',
+            token: token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                userType: user.userType,
+                verificationStatus: user.verificationStatus,
+                department: user.department,
+                graduationYear: user.graduationYear,
+                currentJob: user.currentJob
+            }
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -124,15 +142,29 @@ export const loginUser = async (req, res) => {
                 message: 'Your account verification was rejected. Please contact support.' 
             });
         }
-
+        const token = generateToken(user._id);
+        console.log("token", token);
+        
         res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            userType: user.userType,
-            verificationStatus: user.verificationStatus,
-            token: generateToken(user._id)
+            success: true,
+            message: 'Login successful',
+            token: token,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                userType: user.userType,
+                verificationStatus: user.verificationStatus,
+                department: user.department,
+                graduationYear: user.graduationYear,
+                currentYear: user.currentYear,
+                currentJob: user.currentJob,
+                bio: user.bio,
+                profilePicture: user.profilePicture
+            }
         });
+        
+        
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -142,9 +174,9 @@ export const loginUser = async (req, res) => {
 export const getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id).select('-password');
-        console.log("user",user);
+        
         if (user) {
-            console.log("user",user);
+            
             res.json(user);
         } else {
             res.status(404).json({ message: 'User not found' });

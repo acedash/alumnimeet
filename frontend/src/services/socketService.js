@@ -6,17 +6,28 @@ class SocketService {
         this.socket = null;
         this.listeners = new Map(); // Track active listeners
         this.connectionPromise = null; // Track connection promise
+        this.lastJoinedConversationId = null; // Track last joined conversation
+        this.isConnecting = false; // Track connection state
     }
 
     connect(token) {
-        // If already connecting/connected, return existing promise
-        if (this.connectionPromise) {
+        // If already connected, return resolved promise
+        if (this.socket && this.socket.connected) {
+            return Promise.resolve();
+        }
+
+        // If already connecting, return existing promise
+        if (this.isConnecting && this.connectionPromise) {
             return this.connectionPromise;
         }
 
+        this.isConnecting = true;
         this.connectionPromise = new Promise((resolve, reject) => {
             // Clean up any existing connection
-            this.disconnect();
+            if (this.socket && !this.socket.connected) {
+                this.socket.removeAllListeners();
+                this.socket = null;
+            }
 
             this.socket = io(this.apiUrl, {
                 auth: { token },
@@ -25,18 +36,21 @@ class SocketService {
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
                 transports: ['websocket', 'polling'], // Allow fallback to polling
-                timeout: 10000 // 10 second connection timeout
+                timeout: 10000, // 10 second connection timeout
+                forceNew: false // Don't force new connection if one exists
             });
 
             // Temporary connection handlers
             const connectHandler = () => {
                 cleanup();
-                console.log('Socket connected successfully');
+                this.isConnecting = false;
+                console.log('✅ Socket connected successfully');
                 resolve();
             };
 
             const errorHandler = (err) => {
                 cleanup();
+                this.isConnecting = false;
                 console.error('Socket connection error:', err);
                 this.socket = null;
                 this.connectionPromise = null;
@@ -70,6 +84,8 @@ class SocketService {
             this.socket.disconnect();
             this.socket = null;
             this.connectionPromise = null;
+            this.lastJoinedConversationId = null;
+            this.isConnecting = false;
         }
     }
 
@@ -77,11 +93,19 @@ class SocketService {
         return this.socket && this.socket.connected;
     }
 
+    getSocketId() {
+        return this.socket ? this.socket.id : null;
+    }
+
     joinChat(conversationId) {
         if (!this.isConnected()) {
+            console.error('Cannot join chat - socket not connected');
             throw new Error('Socket not connected');
         }
-        console.log('Joining conversation:', conversationId);
+        if (this.lastJoinedConversationId === conversationId) {
+            return;
+        }
+        this.lastJoinedConversationId = conversationId;
         this.socket.emit('join-chat', conversationId);
     }
 
@@ -91,13 +115,14 @@ class SocketService {
         }
         
         return new Promise((resolve, reject) => {
-            console.log('Sending message via socket:', data);
             this.socket.emit('send-message', data, (response) => {
-                if (response?.error) {
-                    console.error('Message send error:', response.error);
-                    reject(response.error);
+                if (response?.success === false || response?.error) {
+                    console.error('Message send error:', response.error || 'Unknown error');
+                    reject(new Error(response.error || 'Failed to send message'));
+                } else if (response?.success === true) {
+                    resolve(response.message);
                 } else {
-                    console.log('Message sent successfully via socket:', response);
+                    // Fallback for older format
                     resolve(response);
                 }
             });
@@ -116,6 +141,14 @@ class SocketService {
             return;
         }
         this.socket.emit('mark-as-read', { messageId });
+    }
+
+    // Generic emit method for testing
+    emit(event, data) {
+        if (!this.isConnected()) {
+            throw new Error('Socket not connected');
+        }
+        this.socket.emit(event, data);
     }
 
     // Event listeners with automatic cleanup

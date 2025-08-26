@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from "../../context/chatContext";
-import { Send, ArrowLeft, User, Phone, Video, MoreVertical } from 'lucide-react';
+import { Send, User, Wifi, WifiOff } from 'lucide-react';
 import './ChatWindow.css';
 
 const ChatWindow = () => {
@@ -14,93 +14,62 @@ const ChatWindow = () => {
     loadChat,
     getCurrentUserId,
     isConnected,
-    error
+    error,
+    testSocketConnection,
+    cleanupDuplicateMessages,
+    checkForDuplicates,
+    forceCleanupDuplicates
   } = useChat();
   
   const [newMessage, setNewMessage] = useState('');
   const [localLoading, setLocalLoading] = useState(false);
   const [loadedChatId, setLoadedChatId] = useState(null);
-  const [forceUpdate, setForceUpdate] = useState(0); // Force re-render
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const loadingTimeoutRef = useRef(null);
 
-  // Debug logging - only log when important values change
+  // Update connection status
   useEffect(() => {
-    console.log('ChatWindow State:', {
-      currentChatId: currentChat?._id,
-      loadedChatId,
-      localLoading,
-      messagesCount: messages.length,
-      isConnected
-    });
-    
-    // Log messages when they change
-    if (messages.length > 0) {
-      console.log('ChatWindow Messages:', messages.map(m => ({ id: m._id, content: m.content, sender: m.sender })));
+    if (isConnected) {
+      setConnectionStatus('connected');
+    } else {
+      setConnectionStatus('disconnected');
     }
-  }, [currentChat?._id, loadedChatId, localLoading, messages.length, isConnected, messages]);
+  }, [isConnected]);
 
-  // Memoize the load chat function - remove hasLoadedChat dependency to prevent recreation
   const handleLoadChat = useCallback(async (chatId) => {
-    if (!chatId || chatId.startsWith('temp-')) {
-      console.log('Skipping load chat - invalid chat ID:', chatId);
+    if (!chatId || chatId.startsWith('temp-')) return;
+    if (loadedChatId === chatId) return;
+    
+    // Don't reload if we already have messages for this chat
+    if (messages.length > 0 && messages[0]?.conversation === chatId) {
+      setLoadedChatId(chatId);
       return;
     }
-
-    // Check if we already loaded this chat
-    if (loadedChatId === chatId) {
-      console.log('Chat already loaded:', chatId);
-      return;
-    }
-
-    console.log('Loading chat:', chatId);
+    
     setLocalLoading(true);
     setLoadedChatId(chatId);
-    
-    // Set a timeout to prevent infinite loading
-    loadingTimeoutRef.current = setTimeout(() => {
-      console.log('Loading timeout reached, stopping loading');
-      setLocalLoading(false);
-    }, 10000); // 10 second timeout
-    
+    loadingTimeoutRef.current = setTimeout(() => setLocalLoading(false), 10000);
     try {
       await loadChat(chatId);
-      console.log('Load chat completed successfully');
-    } catch (error) {
-      console.error('Failed to load chat:', error);
-      setLoadedChatId(null); // Reset on error to allow retry
     } finally {
-      console.log('Load chat completed');
       setLocalLoading(false);
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
     }
-  }, [loadChat, loadedChatId]);
+  }, [loadChat, loadedChatId, messages]);
 
-  // Single useEffect to handle chat loading
   useEffect(() => {
     if (currentChat?._id) {
-      console.log('ChatWindow: Loading chat with ID:', currentChat._id);
       handleLoadChat(currentChat._id);
     }
-
-    // Cleanup function
     return () => {
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-      }
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
+      if (loadingTimeoutRef.current) clearTimeout(loadingTimeoutRef.current);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, [currentChat?._id, handleLoadChat]);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    console.log('Messages changed, forcing re-render. Count:', messages.length);
-    setForceUpdate(prev => prev + 1);
     scrollToBottom();
   }, [messages]);
 
@@ -111,34 +80,18 @@ const ChatWindow = () => {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !isConnected) return;
-    
-    console.log('Sending message:', newMessage);
-    
     try {
       await sendMessage(newMessage);
-      console.log('Message sent successfully, clearing input');
       setNewMessage('');
-      
-      // Stop typing indicator
       sendTyping(false);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
+    } catch {}
   };
 
   const handleTyping = (e) => {
     setNewMessage(e.target.value);
-    
     if (isConnected && currentChat) {
-      // Start typing indicator
       sendTyping(true);
-      
-      // Clear existing timeout
-      if (typingTimeoutRef.current) {
-        clearTimeout(typingTimeoutRef.current);
-      }
-      
-      // Set new timeout to stop typing indicator
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
         sendTyping(false);
       }, 2000);
@@ -147,7 +100,6 @@ const ChatWindow = () => {
 
   const getOtherParticipant = () => {
     if (!currentChat?.participants) {
-      // If we don't have participants but have messages, try to get from messages
       if (messages.length > 0) {
         const currentUserId = getCurrentUserId();
         const otherMessage = messages.find(msg => 
@@ -171,29 +123,28 @@ const ChatWindow = () => {
     });
   };
 
-  // Show loading only when we have a chat but are loading messages locally
+  const getConnectionStatusText = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return 'Connected to chat server';
+      case 'disconnected':
+        return 'Disconnected from chat server';
+      case 'connecting':
+        return 'Connecting to chat server...';
+      default:
+        return 'Unknown connection status';
+    }
+  };
+
   if (currentChat && localLoading) {
-    console.log('Showing loading state');
     return (
-      <div className="chat-container">
+      <div className="chat-window">
         <div className="loading-messages">
           <p>Loading messages...</p>
-          <button 
-            onClick={() => {
-              setLocalLoading(false);
-              setLoadedChatId(null);
-            }}
-            style={{ marginTop: '10px', padding: '5px 10px', marginRight: '10px' }}
-          >
+          <button onClick={() => { setLocalLoading(false); setLoadedChatId(null); }}>
             Stop Loading
           </button>
-          <button 
-            onClick={() => {
-              setLoadedChatId(null);
-              handleLoadChat(currentChat._id);
-            }}
-            style={{ marginTop: '10px', padding: '5px 10px' }}
-          >
+          <button onClick={() => { setLoadedChatId(null); handleLoadChat(currentChat._id); }}>
             Retry
           </button>
         </div>
@@ -201,11 +152,9 @@ const ChatWindow = () => {
     );
   }
 
-  // Show empty state when no chat is selected and no messages
   if (!currentChat && messages.length === 0) {
-    console.log('Showing empty state');
     return (
-      <div className="chat-container">
+      <div className="chat-window">
         <div className="empty-chat">
           <p>Select a conversation to start chatting</p>
         </div>
@@ -213,16 +162,12 @@ const ChatWindow = () => {
     );
   }
 
-  console.log('Rendering chat window');
   const otherParticipant = getOtherParticipant();
   const isOnline = onlineUsers.has(otherParticipant?._id);
   const isTyping = typingUsers[otherParticipant?._id];
-  
-  // If we have messages but no currentChat, create a minimal chat object
-  const displayChat = currentChat || (messages.length > 0 ? { _id: messages[0]?.conversation } : null);
 
   return (
-    <div className="chat-container">
+    <div className="chat-window">
       <div className="chat-header">
         <div className="chat-user-info">
           <div className="user-avatar">
@@ -235,56 +180,93 @@ const ChatWindow = () => {
           </div>
           <div className="user-details">
             <h3>{otherParticipant?.name || 'Unknown User'}</h3>
-            <span className={`status ${isOnline ? 'online' : 'offline'}`}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
+            <span className={`status ${isOnline ? 'online' : 'offline'}`}>{isOnline ? 'Online' : 'Offline'}</span>
           </div>
         </div>
+        <div className={`connection-status ${connectionStatus}`}>
+          {connectionStatus === 'connected' ? <Wifi size={16} /> : <WifiOff size={16} />}
+          <span>{getConnectionStatusText()}</span>
+        </div>
+        {/* Test button for debugging */}
+        <button 
+          onClick={testSocketConnection}
+          style={{ 
+            padding: '4px 8px', 
+            fontSize: '12px', 
+            background: '#f0f0f0', 
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            marginRight: '8px'
+          }}
+        >
+          🧪 Test
+        </button>
+        {/* Cleanup button for debugging */}
+        <button 
+          onClick={cleanupDuplicateMessages}
+          style={{ 
+            padding: '4px 8px', 
+            fontSize: '12px', 
+            background: '#ffebee', 
+            border: '1px solid #f44336',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#d32f2f',
+            marginRight: '8px'
+          }}
+        >
+          🧹 Clean
+        </button>
+        {/* Check duplicates button for debugging */}
+        <button 
+          onClick={checkForDuplicates}
+          style={{ 
+            padding: '4px 8px', 
+            fontSize: '12px', 
+            background: '#fff3e0', 
+            border: '1px solid #ff9800',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#e65100',
+            marginRight: '8px'
+          }}
+        >
+          🔍 Check
+        </button>
+        {/* Force cleanup button for debugging */}
+        <button 
+          onClick={forceCleanupDuplicates}
+          style={{ 
+            padding: '4px 8px', 
+            fontSize: '12px', 
+            background: '#e8f5e8', 
+            border: '1px solid #4caf50',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            color: '#2e7d32'
+          }}
+        >
+          🚀 Force
+        </button>
       </div>
-
       {error && (
         <div className="error-message">
           <p>{error}</p>
         </div>
       )}
-
-      {!isConnected && (
+      {connectionStatus === 'disconnected' && (
         <div className="connection-warning">
-          <p>Connecting to chat server...</p>
+          <p>⚠️ Chat server connection lost. Messages may not be delivered in real-time.</p>
         </div>
       )}
-
-      <div className="messages">
-        {/* Debug info */}
-        <div style={{ padding: '10px', background: '#f0f0f0', fontSize: '12px' }}>
-          Debug: {messages.length} messages loaded (Force Update: {forceUpdate})
-          {messages.length > 0 && (
-            <div>
-              Latest: {messages[messages.length - 1].content}
-              <br />
-              All messages: {messages.map(m => m.content).join(', ')}
-            </div>
-          )}
-        </div>
-        
+      <div className="messages-container">
         {messages.length > 0 ? (
           messages.map(msg => {
             const currentUserId = getCurrentUserId();
             const isOwnMessage = msg.sender._id === currentUserId || msg.sender === currentUserId;
-            
-            console.log('Rendering message:', {
-              messageId: msg._id,
-              content: msg.content,
-              senderId: msg.sender._id,
-              currentUserId,
-              isOwnMessage
-            });
-            
             return (
-              <div 
-                key={msg._id} 
-                className={`message ${isOwnMessage ? 'sent' : 'received'}`}
-              >
+              <div key={msg._id} className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>
                 {!isOwnMessage && (
                   <div className="sender-avatar">
                     {otherParticipant?.profilePicture ? (
@@ -296,9 +278,7 @@ const ChatWindow = () => {
                 )}
                 <div className="message-content">
                   <div className="text">{msg.content}</div>
-                  <div className="timestamp">
-                    {formatMessageTime(msg.createdAt)}
-                  </div>
+                  <div className="timestamp">{formatMessageTime(msg.createdAt)}</div>
                 </div>
               </div>
             );
@@ -308,10 +288,8 @@ const ChatWindow = () => {
             <p>No messages yet. Start the conversation!</p>
           </div>
         )}
-        
-        {/* Typing indicator */}
         {isTyping && (
-          <div className="message received">
+          <div className="message-bubble received">
             <div className="message-content">
               <div className="typing-indicator">
                 <span></span>
@@ -321,18 +299,17 @@ const ChatWindow = () => {
             </div>
           </div>
         )}
-        
         <div ref={messagesEndRef} />
       </div>
-      
       <form onSubmit={handleSend} className="message-form">
         <input
           value={newMessage}
           onChange={handleTyping}
           placeholder="Type a message..."
           disabled={!isConnected}
+          className="message-input"
         />
-        <button type="submit" disabled={!newMessage.trim() || !isConnected}>
+        <button type="submit" disabled={!newMessage.trim() || !isConnected} className={`send-button ${newMessage.trim() && isConnected ? 'active' : 'inactive'}`}>
           <Send size={20} />
         </button>
       </form>

@@ -184,7 +184,6 @@ const Home = () => {
             try {
                 // Fetch all posts
                 const allPosts = await postService.getPosts();
-                console.log('Fetched posts:', allPosts); // Debug log
                 
                 // Ensure allPosts is an array
                 if (!Array.isArray(allPosts)) {
@@ -195,9 +194,6 @@ const Home = () => {
                 // Filter posts by type
                 const events = allPosts.filter(post => post.type === 'event');
                 const jobs = allPosts.filter(post => post.type === 'job');
-                
-                console.log('Events:', events); // Debug log
-                console.log('Jobs:', jobs); // Debug log
                 
                 setUpcomingEvents(events);
                 setJobOpenings(jobs);
@@ -334,7 +330,7 @@ const Home = () => {
                             </h2>
                             {user && (
                                 <Link to="/events/create" className="create-button">
-                                    Create Event
+                                    Create Post
                                 </Link>
                             )}
                         </div>
@@ -403,11 +399,7 @@ const Home = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="card-footer">
-                                                <Link to={`/events/${event._id}`} className="card-button">
-                                                    View Details
-                                                </Link>
-                                            </div>
+                                            
                                         </div>
                                     ))
                                 ) : (
@@ -432,11 +424,7 @@ const Home = () => {
                             <h2 className="section-title">
                                 <BriefcaseIcon className="section-icon" /> Job Openings
                             </h2>
-                            {user && (
-                                <Link to="/jobs/create" className="create-button">
-                                    Post Opportunity
-                                </Link>
-                            )}
+                            
                         </div>
 
                         {loading ? (
@@ -503,11 +491,7 @@ const Home = () => {
                                                     </span>
                                                 </div>
                                             </div>
-                                            <div className="card-footer">
-                                                <Link to={`/jobs/${job._id}`} className="card-button apply-button">
-                                                    View Details
-                                                </Link>
-                                            </div>
+                                           
                                         </div>
                                     ))
                                 ) : (
@@ -576,17 +560,6 @@ const Home = () => {
                             <Link to="/resources" className="nav-link">Career Resources</Link>
                         </nav>
                     </div>
-
-                    {/* Debug Info (remove in production) */}
-                    {process.env.NODE_ENV === 'development' && (
-                        <div className="debug-info">
-                            <h4>Debug Info:</h4>
-                            <p>Events: {upcomingEvents.length}</p>
-                            <p>Jobs: {jobOpenings.length}</p>
-                            <p>Loading: {loading.toString()}</p>
-                            <p>Error: {error || 'None'}</p>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

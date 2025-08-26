@@ -14,23 +14,8 @@ const MessagesList = ({ onConversationSelect }) => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [isMounted, setIsMounted] = useState(true);
 
-  // Debug authentication
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    console.log('MessagesList - Token exists:', !!token);
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('MessagesList - Token payload:', payload);
-      } catch (e) {
-        console.error('MessagesList - Invalid token:', e);
-      }
-    }
-  }, []);
-
   // Use context's fetchConversations instead of your own
   useEffect(() => {
-    console.log('MessagesList - fetchConversations effect triggered');
     if (isMounted) {
       fetchConversations();
     }
@@ -54,12 +39,10 @@ const MessagesList = ({ onConversationSelect }) => {
   }, [conversations, searchTerm, getCurrentUserId]);
 
   const handleConversationClick = (conversation) => {
-    console.log('Conversation clicked:', conversation); // Debug log
     const currentUserId = getCurrentUserId();
     const otherParticipant = conversation.participants.find(p => p._id !== currentUserId);
 
     if (otherParticipant) {
-      console.log('Starting chat with:', otherParticipant); // Debug log
       setSelectedConversation(conversation);
       
       // Navigate to the chat page with the conversation ID
@@ -104,7 +87,6 @@ const MessagesList = ({ onConversationSelect }) => {
           <p>Loading conversations...</p>
           <button 
             onClick={() => {
-              console.log('Manual retry clicked');
               fetchConversations();
             }}
             style={{ 

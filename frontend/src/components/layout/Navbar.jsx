@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiMenu, FiBell, FiUser, FiSettings, FiLogOut } from 'react-icons/fi';
+import { useChat } from '../../context/chatContext';
+import { FiMenu, FiBell, FiUser, FiSettings, FiLogOut, FiMessageCircle } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
+  const { newMessages, setNewMessages } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,6 +48,13 @@ const Navbar = () => {
     setMobileMenuOpen(false);
   };
 
+  const handleMessagesClick = () => {
+    // Clear new message notifications when user clicks on Messages
+    setNewMessages(new Set());
+    // Reset page title
+    document.title = 'Alumni Meet';
+  };
+
   // Sample notification count - replace with real data
   useEffect(() => {
     // This would be replaced with actual notification fetching
@@ -70,38 +79,47 @@ const Navbar = () => {
 
           {/* Logo */}
           <h1 className="navbar-logo">
-            <RouterLink to="/">Alumni Meet</RouterLink>
+            <RouterLink to={user ? "/" : "/login"}>Alumni Meet</RouterLink>
           </h1>
 
           {/* Desktop Navigation */}
-          <div className="desktop-nav">
-            <RouterLink
-              to="/events"
-              className={`nav-link ${location.pathname === '/events' ? 'active' : ''}`}
-            >
-              Events
-            </RouterLink>
-            <RouterLink
-              to="/alumni"
-              className={`nav-link ${location.pathname === '/alumni' ? 'active' : ''}`}
-            >
-              Alumni
-            </RouterLink>
-            <RouterLink
-              to="/messages"
-              className={`nav-link ${location.pathname === '/messages' ? 'active' : ''}`}
-            >
-              Messages
-            </RouterLink>
-            {user?.role === 'admin' && (
+          {user && (
+            <div className="desktop-nav">
               <RouterLink
-                to="/admin"
-                className={`nav-link ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
+                to="/events"
+                className={`nav-link ${location.pathname === '/events' ? 'active' : ''}`}
               >
-                Admin
+                Events
               </RouterLink>
-            )}
-          </div>
+              <RouterLink
+                to="/alumni"
+                className={`nav-link ${location.pathname === '/alumni' ? 'active' : ''}`}
+              >
+                Alumni
+              </RouterLink>
+              <RouterLink
+                to="/messages"
+                className={`nav-link ${location.pathname === '/messages' ? 'active' : ''}`}
+                onClick={handleMessagesClick}
+              >
+                <div className="nav-link-content">
+                  <FiMessageCircle size={18} />
+                  <span>Messages</span>
+                  {newMessages?.size > 0 && (
+                    <span className="message-badge">{newMessages.size}</span>
+                  )}
+                </div>
+              </RouterLink>
+              {user?.role === 'admin' && (
+                <RouterLink
+                  to="/admin"
+                  className={`nav-link ${location.pathname.startsWith('/admin') ? 'active' : ''}`}
+                >
+                  Admin
+                </RouterLink>
+              )}
+            </div>
+          )}
 
           <div className="navbar-spacer"></div>
 
@@ -205,9 +223,18 @@ const Navbar = () => {
               <RouterLink 
                 to="/messages" 
                 className="mobile-menu-item"
-                onClick={toggleMobileMenu}
+                onClick={() => {
+                  handleMessagesClick();
+                  toggleMobileMenu();
+                }}
               >
-                Messages
+                <div className="mobile-menu-item-content">
+                  <FiMessageCircle size={18} />
+                  <span>Messages</span>
+                  {newMessages?.size > 0 && (
+                    <span className="mobile-message-badge">{newMessages.size}</span>
+                  )}
+                </div>
               </RouterLink>
               {user.role === 'admin' && (
                 <RouterLink 
@@ -243,20 +270,6 @@ const Navbar = () => {
                 onClick={toggleMobileMenu}
               >
                 Register
-              </RouterLink>
-              <RouterLink 
-                to="/events" 
-                className="mobile-menu-item"
-                onClick={toggleMobileMenu}
-              >
-                Events
-              </RouterLink>
-              <RouterLink 
-                to="/alumni" 
-                className="mobile-menu-item"
-                onClick={toggleMobileMenu}
-              >
-                Alumni
               </RouterLink>
             </>
           )}

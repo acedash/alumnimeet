@@ -6,8 +6,10 @@ import './ChatModal.css';
 const ChatModal = ({ isOpen, onClose, user }) => {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const [lastLoadedUserId, setLastLoadedUserId] = useState(null);
   
   const {
     messages, 
@@ -19,15 +21,40 @@ const ChatModal = ({ isOpen, onClose, user }) => {
     startChat,
     isLoading,
     error,
-    setError
+    setError,
+    fetchConversations
   } = useChat();
 
   // Start chat when modal opens
   useEffect(() => {
-    if (isOpen && user && user._id) {
-      startChat(user);
+    if (
+      isOpen &&
+      user &&
+      user._id &&
+      user._id !== lastLoadedUserId
+    ) {
+      const initializeChat = async () => {
+        setIsInitializing(true);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Initialization timeout')), 10000)
+        );
+        try {
+          const initPromise = (async () => {
+            await fetchConversations();
+            await startChat(user);
+          })();
+          await Promise.race([initPromise, timeoutPromise]);
+          setLastLoadedUserId(user._id);
+        } catch (error) {
+          console.error('Failed to initialize chat:', error);
+        } finally {
+          setIsInitializing(false);
+        }
+      };
+      initializeChat();
     }
-  }, [isOpen, user?._id, startChat]);
+    if (!isOpen) setLastLoadedUserId(null);
+  }, [isOpen, user?._id, startChat, fetchConversations]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -38,6 +65,11 @@ const ChatModal = ({ isOpen, onClose, user }) => {
   useEffect(() => {
     if (isOpen) {
       setError(null);
+    } else {
+      // Clear messages and current chat when modal closes
+      setError(null);
+      // Note: We don't clear messages here as they might be needed for other components
+      // The context will handle this when switching conversations
     }
   }, [isOpen, setError]);
 
@@ -91,7 +123,8 @@ const ChatModal = ({ isOpen, onClose, user }) => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.id || payload.userId;
+        // Try all possible fields and always return as string
+        return String(payload.id || payload.userId || payload._id);
       } catch (e) {
         return null;
       }
@@ -110,6 +143,10 @@ const ChatModal = ({ isOpen, onClose, user }) => {
 
   const currentUserId = getCurrentUserId();
   const isOnline = onlineUsers.has(user?._id);
+
+  // Debug badge for ID comparison
+  // Remove after verifying
+  const debug = false; // set to true to show debug info
 
   return (
     <div className="chat-modal-overlay">
@@ -135,9 +172,14 @@ const ChatModal = ({ isOpen, onClose, user }) => {
             <FiX />
           </button>
         </div>
-
+        {debug && (
+          <div style={{fontSize: '0.8em', color: '#888', padding: '0.5em', background: '#f3f4f6'}}>
+            <div>currentUserId: {currentUserId}</div>
+            <div>user._id: {user?._id}</div>
+          </div>
+        )}
         <div className="chat-messages">
-          {isLoading ? (
+          {isLoading || isInitializing ? (
             <div className="loading-messages">
               <p>Loading messages...</p>
             </div>
@@ -153,7 +195,7 @@ const ChatModal = ({ isOpen, onClose, user }) => {
             messages.map((msg) => (
               <div
                 key={msg._id}
-                className={`message ${msg.sender === currentUserId ? 'sent' : 'received'}`}
+                className={`message ${String(msg.sender) === String(currentUserId) ? 'sent' : 'received'}`}
               >
                 <div className="message-content">
                   <p>{msg.content}</p>

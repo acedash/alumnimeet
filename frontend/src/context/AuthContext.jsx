@@ -40,15 +40,20 @@ export const AuthProvider = ({ children }) => {
     }, [loadUser]);
 
     // Register student with file upload
-    const registerStudentUser = async (userData, file) => {
+    const registerStudentUser = async (userData) => {
         try {
             setError(null);
             setLoading(true);
-            const data = await authService.registerStudent(userData, file);
-            localStorage.setItem('token', data.token);
-            setUser(data.user);
-            navigate('/dashboard'); // Redirect after successful registration
-            return data;
+            const response = await authService.registerStudent(userData);
+            
+            if (response.success && response.token && response.user) {
+                localStorage.setItem('token', response.token);
+                setUser(response.user);
+                setError(null);
+                return response;
+            } else {
+                throw new Error('Invalid registration response structure');
+            }
         } catch (error) {
             handleAuthError(error, 'Registration failed');
             throw error;
@@ -62,11 +67,16 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             setLoading(true);
-            const data = await authService.registerAlumni(userData);
-            localStorage.setItem('token', data.token);
-            setUser(data.user);
-            navigate('/dashboard');
-            return data;
+            const response = await authService.registerAlumni(userData);
+            
+            if (response.success && response.token && response.user) {
+                localStorage.setItem('token', response.token);
+                setUser(response.user);
+                setError(null);
+                return response;
+            } else {
+                throw new Error('Invalid registration response structure');
+            }
         } catch (error) {
             handleAuthError(error, 'Registration failed');
             throw error;
@@ -80,12 +90,18 @@ export const AuthProvider = ({ children }) => {
         try {
             setError(null);
             setLoading(true);
-            const data = await authService.loginUser(credentials);
-            localStorage.setItem('token', data.token);
-            setUser(data.user);
-            navigate('/dashboard');
-            return data;
+            const response = await authService.loginUser(credentials);
+            
+            if (response.success && response.token && response.user) {
+                localStorage.setItem('token', response.token);
+                setUser(response.user);
+                setError(null);
+                return response;
+            } else {
+                throw new Error('Invalid login response structure');
+            }
         } catch (error) {
+            console.error('Login error:', error);
             handleAuthError(error, 'Login failed');
             throw error;
         } finally {
@@ -102,9 +118,43 @@ export const AuthProvider = ({ children }) => {
 
     // Common error handler
     const handleAuthError = (error, defaultMessage) => {
-        const errorMessage = error.response?.data?.message || 
-                            error.message || 
-                            defaultMessage;
+        let errorMessage = defaultMessage;
+        
+        // Handle validation errors
+        if (error.response?.data?.errors) {
+            errorMessage = error.response.data.errors
+                .map(err => err.message)
+                .join(', ');
+        }
+        // Handle specific HTTP status codes
+        else if (error.response?.status === 400) {
+            errorMessage = error.response.data?.message || 'Invalid request. Please check your input.';
+        }
+        else if (error.response?.status === 401) {
+            if (error.config?.url?.includes('/users/login')) {
+                errorMessage = 'Invalid email or password. Please check your credentials.';
+            } else {
+                errorMessage = 'Session expired. Please login again.';
+                localStorage.removeItem('token');
+                setUser(null);
+            }
+        }
+        else if (error.response?.status === 403) {
+            errorMessage = error.response.data?.message || 'Access denied. Your account may need verification.';
+        }
+        else if (error.response?.status === 404) {
+            errorMessage = 'User not found. Please check your information.';
+        }
+        else if (error.response?.status === 500) {
+            errorMessage = 'Server error. Please try again later.';
+        }
+        else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        }
+        else if (error.message) {
+            errorMessage = error.message;
+        }
+        
         setError(errorMessage);
         console.error('Auth error:', error);
     };

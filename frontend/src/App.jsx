@@ -29,86 +29,112 @@ const PrivateRoute = ({ children }) => {
 const PublicRoute = ({ children }) => {
     const { user, loading, authChecked } = useAuth();
 
-    if (!authChecked || loading) {
+    // Show loading spinner only if auth hasn't been checked yet
+    if (!authChecked) {
         return <LoadingSpinner />;
     }
 
-    return user ? <Navigate to="/" replace /> : children;
+    // If user is authenticated, redirect to home
+    if (user) {
+        return <Navigate to="/" replace />;
+    }
+
+    // If not authenticated, show the login/register form
+    return children;
 };
 
 const App = () => {
     return (
-       <ChatProvider>
-         <Router>
+        <Router>
             <AuthProvider>
-                <Box minH="100vh" display="flex" flexDirection="column">
-                    <Navbar />
-                    <Box as="main" flex={1} py={8}>
-                        <Routes>
-                            {/* Public Routes */}
-                            <Route path="/" element={<Home />} />
-                            <Route path="/alumni" element={<AlumniDirectoryPage />} />
-                            <Route path="/alumni/:id" element={<AlumniProfilePage />} />
+                <ChatProvider>
+                    <Box minH="100vh" display="flex" flexDirection="column">
+                        <Navbar />
+                        <Box as="main" flex={1} py={8}>
+                            <Routes>
+                                {/* Auth Routes (only for non-authenticated users) */}
+                                <Route
+                                    path="/login"
+                                    element={
+                                        <PublicRoute>
+                                            <LoginForm />
+                                        </PublicRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/register"
+                                    element={
+                                        <PublicRoute>
+                                            <RegisterForm />
+                                        </PublicRoute>
+                                    }
+                                />
 
-                            {/* Auth Routes (only for non-authenticated users) */}
-                            <Route
-                                path="/login"
-                                element={
-                                    <PublicRoute>
-                                        <LoginForm />
-                                    </PublicRoute>
-                                }
-                            />
-                            <Route
-                                path="/register"
-                                element={
-                                    <PublicRoute>
-                                        <RegisterForm />
-                                    </PublicRoute>
-                                }
-                            />
-
-                            {/* Protected Routes (only for authenticated users) */}
-                            <Route
-                                path="/profile"
-                                element={
-                                    <PrivateRoute>
-                                        <ProfilePage />
-                                    </PrivateRoute>
-                                }
-                            />
-                            <Route
-                                path="/messages"
-                                element={
-                                    <PrivateRoute>
-                                        <MessagesList />
-                                    </PrivateRoute>
-                                }
-                            />
-                            <Route
-                                path="/chat/:chatId"
-                                element={
-                                    <PrivateRoute>
-                                        <ChatPage />
-                                    </PrivateRoute>
-                                }
-                            />
-                            <Route
-                                path='/events/create'
-                                element={
-                                    <PrivateRoute>
-                                        <PostForm/>
-                                    </PrivateRoute>
-                                }
-                            />
-                            
-                            <Route path="*" element={<Navigate to="/" replace />} />
-                        </Routes>
+                                {/* Protected Routes (only for authenticated users) */}
+                                <Route
+                                    path="/"
+                                    element={
+                                        <PrivateRoute>
+                                            <Home />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/alumni"
+                                    element={
+                                        <PrivateRoute>
+                                            <AlumniDirectoryPage />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/alumni/:id"
+                                    element={
+                                        <PrivateRoute>
+                                            <AlumniProfilePage />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/profile"
+                                    element={
+                                        <PrivateRoute>
+                                            <ProfilePage />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/messages"
+                                    element={
+                                        <PrivateRoute>
+                                            <MessagesList />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/chat/:chatId"
+                                    element={
+                                        <PrivateRoute>
+                                            <ChatPage />
+                                        </PrivateRoute>
+                                    }
+                                />
+                                <Route
+                                    path='/events/create'
+                                    element={
+                                        <PrivateRoute>
+                                            <PostForm/>
+                                        </PrivateRoute>
+                                    }
+                                />
+                                
+                                <Route path="*" element={<Navigate to="/" replace />} />
+                            </Routes>
+                        </Box>
                     </Box>
-                </Box>
+                </ChatProvider>
             </AuthProvider>
         </Router>
-       </ChatProvider>
     );
 };
 

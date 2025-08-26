@@ -32,7 +32,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     response => response,
     error => {
-        if (error.response?.status === 401) {
+        // Only treat 401 as session expired if it's not a login request
+        if (error.response?.status === 401 && !error.config?.url?.includes('/users/login')) {
             localStorage.removeItem('token');
             return Promise.reject(new Error('Session expired. Please login again.'));
         }
@@ -60,10 +61,6 @@ export const authService = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-        }
         return response.data;
     },
 
@@ -73,18 +70,11 @@ export const authService = {
                 'Content-Type': 'multipart/form-data',
             },
         });
-
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-        }
         return response.data;
     },
 
     loginUser: async (credentials) => {
         const response = await api.post('/users/login', credentials);
-        if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-        }
         return response.data;
     },
 };
@@ -187,5 +177,43 @@ export const alumniService = {
 //         return response.data;
 //     },
 // };
+
+// Posts-related endpoints
+export const postsService = {
+  getAllPosts: async (filters = {}) => {
+    const response = await api.get('/posts', { params: filters });
+    return response.data;
+  },
+
+  getPostById: async (id) => {
+    const response = await api.get(`/posts/${id}`);
+    return response.data;
+  },
+
+  getUserPosts: async (userId, filters = {}) => {
+    const response = await api.get(`/posts/user/${userId}`, { params: filters });
+    return response.data;
+  },
+
+  getPostsByType: async (type, filters = {}) => {
+    const response = await api.get(`/posts/type/${type}`, { params: filters });
+    return response.data;
+  },
+
+  createPost: async (postData) => {
+    const response = await api.post('/posts', postData);
+    return response.data;
+  },
+
+  updatePost: async (id, postData) => {
+    const response = await api.put(`/posts/${id}`, postData);
+    return response.data;
+  },
+
+  deletePost: async (id) => {
+    const response = await api.delete(`/posts/${id}`);
+    return response.data;
+  },
+};
 
 export default api;
